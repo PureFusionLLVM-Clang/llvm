@@ -1174,25 +1174,24 @@ static MachO::CPUSubTypeARM getMachOSubTypeFromArch(StringRef Arch) {
 }
 
 static MCAsmBackend *createARMAsmBackend(const Target &T,
-                                         const MCSubtargetInfo &STI,
                                          const MCRegisterInfo &MRI,
+                                         const Triple &TheTriple, StringRef CPU,
                                          const MCTargetOptions &Options,
                                          support::endianness Endian) {
-  const Triple &TheTriple = STI.getTargetTriple();
   switch (TheTriple.getObjectFormat()) {
   default:
     llvm_unreachable("unsupported object format");
   case Triple::MachO: {
     MachO::CPUSubTypeARM CS = getMachOSubTypeFromArch(TheTriple.getArchName());
-    return new ARMAsmBackendDarwin(T, STI, MRI, CS);
+    return new ARMAsmBackendDarwin(T, TheTriple, MRI, CS);
   }
   case Triple::COFF:
     assert(TheTriple.isOSWindows() && "non-Windows ARM COFF is not supported");
-    return new ARMAsmBackendWinCOFF(T, STI);
+    return new ARMAsmBackendWinCOFF(T, TheTriple);
   case Triple::ELF:
     assert(TheTriple.isOSBinFormatELF() && "using ELF for non-ELF target");
     uint8_t OSABI = MCELFObjectTargetWriter::getOSABI(TheTriple.getOS());
-    return new ARMAsmBackendELF(T, STI, OSABI, Endian);
+    return new ARMAsmBackendELF(T, TheTriple, OSABI, Endian);
   }
 }
 
@@ -1200,12 +1199,14 @@ MCAsmBackend *llvm::createARMLEAsmBackend(const Target &T,
                                           const MCSubtargetInfo &STI,
                                           const MCRegisterInfo &MRI,
                                           const MCTargetOptions &Options) {
-  return createARMAsmBackend(T, STI, MRI, Options, support::little);
+  return createARMAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(),
+                             Options, support::little);
 }
 
 MCAsmBackend *llvm::createARMBEAsmBackend(const Target &T,
                                           const MCSubtargetInfo &STI,
                                           const MCRegisterInfo &MRI,
                                           const MCTargetOptions &Options) {
-  return createARMAsmBackend(T, STI, MRI, Options, support::big);
+  return createARMAsmBackend(T, MRI, STI.getTargetTriple(), STI.getCPU(),
+                             Options, support::big);
 }
